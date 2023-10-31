@@ -432,16 +432,7 @@ function align_mem(in_file1::String, in_file2::Union{String,Nothing}, genome_fil
     min_score=20, match=1, mismatch=4, gap_open=6, gap_extend=1, clipping_penalty=5, unpair_penalty=9, unpair_rescue=false, output_all_alignments=false,
     min_seed_len=18, reseeding_factor=1.4, is_ont=false, is_interleaved_paired_end=false, threads=6, sort_bam=false, bwamem_bin=nothing, samtools_bin=nothing)
 
-    bwamem2() do bm_jll
-        samtools() do st_jll
-            if isnothing(bwamem_bin)
-                bwamem_bin = bm_jll
-            end
-            if isnothing(samtools_bin)
-                samtools_bin = st_jll
-            end
-            (!isfile("$genome_file.0123") | !isfile("$genome_file.amb") | !isfile("$genome_file.ann") |
-                !isfile("$genome_file.bwt.2bit.64") | !isfile("$genome_file.pac")) && run(`$bwamem_bin index $genome_file`)
+            run(`$bwamem_bin index $genome_file`)
             params = ["-A", match, "-B", mismatch, "-O", gap_open, "-E", gap_extend, "-T", min_score, "-L", clipping_penalty, "-r", reseeding_factor, "-k", min_seed_len, "-t", threads]
             (isnothing(in_file2) && !is_interleaved_paired_end) || append!(params, ["-U", unpair_penalty])
             is_ont && append!(params, ["-x", "ont2d"])
@@ -456,8 +447,6 @@ function align_mem(in_file1::String, in_file2::Union{String,Nothing}, genome_fil
                     `$samtools_bin view -u`,
                     stdout = sort_bam ? pipeline(`$samtools_bin sort -o $out_file`) : out_file)))
             run(sort_bam ? pipeline(`$samtools_bin index $out_file`, `$samtools_bin stats $out_file`, stats_file) : pipeline(`$samtools_bin stats $out_file`, stats_file))
-        end
-    end
 end
 align_mem(in_file::String, genome_file::String, out_file::String=fnamefromseqfile(in_file);
     min_score=20, match=1, mismatch=4, gap_open=6, gap_extend=1, clipping_penalty=5, min_seed_len=18, output_all_alignments=false,
